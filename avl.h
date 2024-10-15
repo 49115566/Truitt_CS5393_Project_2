@@ -13,223 +13,210 @@ using namespace std;
 
 // Node structure for an AVL tree
 struct tNode {
-	tNode* left;                    // Pointer to the left child of the node
-	tNode* right;                   // Pointer to the right child of the node
-	user* val;                     // Value stored in the node
-	int height;                     // Integer representing the height of the node
+    tNode* left;  // Pointer to the left child of the node
+    tNode* right;  // Pointer to the right child of the node
+    user* val;  // Value stored in the node (user pointer)
+    int height;  // Integer representing the height of the node
 
-	// Constructor to initialize a tree node with user*
-	tNode(user* b) : left(nullptr), right(nullptr), val(b), height(1) {}  // Initialize pointers and height
+    tNode(user* b) : left(nullptr), right(nullptr), val(b), height(1) {}  // Constructor to initialize a tree node with a user pointer
 };
 
 // AVL tree class definition (self-balancing binary search tree)
 class AVL {
 private:
-	tNode* head;                    // Pointer to the root node of the AVL tree
+    tNode* head;  // Pointer to the root node of the AVL tree
 
-	tNode* insertRec(tNode* node, user* v);    // Recursive method to insert and balance the tree
-	user* retrieveRec(tNode* node, string username);  // Recursive method to retrieve a value
-	tNode* removeRec(tNode* node, string username);    // Recursive method to remove and balance the tree
-	tNode* rotateRight(tNode* y);    // Method to perform a right rotation
-	tNode* rotateLeft(tNode* x);     // Method to perform a left rotation
-	tNode* balance(tNode* node);     // Method to balance the AVL tree
-	int height(tNode* node);         // Method to return the height of a node
-	int getBalance(tNode* node);     // Method to get the balance factor of a node
-	tNode* findMin(tNode* node);     // Method to find the node with the minimum value
-	void deleteTree(tNode* node);    // Recursive method to delete the entire tree
+    tNode* insertRec(tNode* node, user* v);  // Recursive method to insert and balance the tree
+    user* retrieveRec(tNode* node, string k) const;  // Recursive method to retrieve a user by username
+    tNode* removeRec(tNode* node, string k);  // Recursive method to remove and balance the tree
+    void getArrRec(tNode* node, user** arr, int* i) const;  // Recursive method to fill an array with users in the tree
+
+    int height(tNode* N);  // Utility method to return the height of a node
+    tNode* rotateRight(tNode* y);  // Utility method for right rotation
+    tNode* rotateLeft(tNode* x);  // Utility method for left rotation
+    int getBalance(tNode* N);  // Utility method to get the balance factor of a node
 
 public:
-	AVL();                          // Constructor to initialize the AVL tree
-	~AVL();                         // Destructor to clean up the AVL tree
-	void insert(user* v);           // Method to insert a value into the AVL tree
-	user* retrieve(string v);       // Method to retrieve a value
-	void remove(string v);           // Method to remove a value
+    AVL();  // Constructor
+    ~AVL();  // Destructor
+
+    user** getArr(int len) const;  // Method to get an array of all users in the tree
+    bool insert(user* k);  // Method to insert a user into the tree
+    bool remove(string k);  // Method to remove a user by username
+    user* retrieve(string k) const;  // Method to retrieve a user by username
 };
 
-// Constructor for the AVL tree
-AVL::AVL() : head(nullptr) {}       // Initialize the head of the tree to nullptr
+AVL::AVL() : head(nullptr) {}  // Constructor to initialize the AVL tree with an empty head
 
-// Destructor for the AVL tree
-AVL::~AVL() {
-	deleteTree(head);               // Call the recursive deleteTree method to clean up
+AVL::~AVL() {  // Destructor for the AVL tree
+    while (head) remove(head->val->username);  // Remove all nodes in the tree
 }
 
-// Recursive method to delete the entire AVL tree
-void AVL::deleteTree(tNode* node) {
-	if (node) {                     // If the node is not null
-		deleteTree(node->left);      // Recursively delete the left subtree
-		deleteTree(node->right);     // Recursively delete the right subtree
-        delete node->val;           //Delete the node's value and by destructor its connections as well
-		delete node;                 // Delete the current node
-	}
+bool AVL::insert(user* k) {  // Insert a user into the AVL tree
+    if (retrieve(k->username)) return false;  // If the user already exists, return false
+    head = insertRec(head, k);  // Insert the user and update the tree
+    return true;  // Return true if insertion was successful
 }
 
-// Public method to insert a value into the AVL tree
-void AVL::insert(user* v) {
-	head = insertRec(head, v);      // Call the recursive insert method, starting from the root
+bool AVL::remove(string k) {  // Remove a user from the AVL tree by username
+    if (!retrieve(k)) return false;  // If the user doesn't exist, return false
+    head = removeRec(head, k);  // Remove the user and update the tree
+    return true;  // Return true if removal was successful
 }
 
-// Recursive method to insert a node into the AVL tree and balance it
-tNode* AVL::insertRec(tNode* node, user* v) {
-	if (!node) {
-		return new tNode(v); // If the node is null, create a new node
-	}
-
-	if (v->username < node->val->username) {            // If the value is less, insert into the left subtree
-		node->left = insertRec(node->left, v);
-	}
-	else if (v->username > node->val->username) {       // If the value is greater, insert into the right subtree
-		node->right = insertRec(node->right, v);
-	}
-	else {                          // If the value already exists, do nothing
-		return node;
-	}
-
-	int hl = height(node->left), hr = height(node->right);
-	node->height = 1 + (hl > hr ? hl : hr);  // Update the node's height
-	return balance(node);           // Balance the tree and return the node
+user* AVL::retrieve(string k) const {  // Retrieve a user from the AVL tree by username
+    return retrieveRec(head, k);  // Call the recursive method to retrieve the user
 }
 
-// Public method to retrieve a value
-user* AVL::retrieve(string username) {
-	return retrieveRec(head, username);    // Call the recursive retrieve method
+user** AVL::getArr(int len) const {  // Get an array of all users in the AVL tree
+    user** arr = new user*[len];  // Create an array of user pointers
+    int i = 0;  // Initialize index for array
+    getArrRec(head, arr, &i);  // Fill the array with users using recursion
+    return arr;  // Return the array of users
 }
 
-// Recursive method to retrieve a value
-user* AVL::retrieveRec(tNode* node, string username) {
-	if (!node) return nullptr;          // If the node is null, return NAN
-	if (username == node->val->username) {           // If the value matches, return it
-		return node->val;
-	}
-	else if (username < node->val->username) {       // If the value is less, search the left subtree
-		return retrieveRec(node->left, username);
-	}
-	else {                          // If the value is greater, search the right subtree
-		return retrieveRec(node->right, username);
-	}
+int AVL::height(tNode* N) {  // Utility method to return the height of a node
+    if (!N) return 0;  // If the node is null, return height 0
+    return N->height;  // Return the height of the node
 }
 
-// Public method to remove a value
-void AVL::remove(string username) {
-	head = removeRec(head, username);      // Call the recursive remove method
+tNode* AVL::rotateRight(tNode* y) {  // Utility method for right rotation
+    tNode* x = y->left;  // Set x as the left child of y
+    tNode* T2 = x->right;  // Set T2 as the right child of x
+
+    // Perform rotation
+    x->right = y;  // Set y as the right child of x
+    y->left = T2;  // Set T2 as the left child of y
+
+    // Update heights
+    y->height = max(height(y->left), height(y->right)) + 1;  // Update height of y
+    x->height = max(height(x->left), height(x->right)) + 1;  // Update height of x
+
+    return x;  // Return the new root
 }
 
-// Recursive method to remove a node and balance the tree
-tNode* AVL::removeRec(tNode* node, string username) {
-	if (!node) {
-		return nullptr;      // If the node is null, return null
-	}
+tNode* AVL::rotateLeft(tNode* x) {  // Utility method for left rotation
+    tNode* y = x->right;  // Set y as the right child of x
+    tNode* T2 = y->left;  // Set T2 as the left child of y
 
-	if (username < node->val->username) {            // If the value is less, search the left subtree
-		node->left = removeRec(node->left, username);
-	}
-	else if (username > node->val->username) {       // If the value is greater, search the right subtree
-		node->right = removeRec(node->right, username);
-	}
-	else {                          // If the node to be deleted is found
-		if (!node->left || !node->right) { // If the node has one or no children
-			tNode* temp = node->left ? node->left : node->right; // Choose the non-null child
-			if (!temp) {             // If there are no children
-				temp = node;         // Temporarily store the node
-				node = nullptr;      // Set the node to null
-			}
-			else {
-				*node = *temp;       // Copy the non-null child to the current node
-			}
-            delete temp->val;       //Delete the node's value and by nature its connections
-			delete temp;             // Delete the temporary node
-		}
-		else {                      // If the node has two children
-			tNode* temp = findMin(node->right); // Find the in-order successor
-			node->val = temp->val;   // Replace the current node's value with the successor's
-			node->right = removeRec(node->right, temp->val->username); // Remove the successor
-		}
-	}
+    // Perform rotation
+    y->left = x;  // Set x as the left child of y
+    x->right = T2;  // Set T2 as the right child of x
 
-	if (!node) return node;         // If the tree is empty, return null
+    // Update heights
+    x->height = max(height(x->left), height(x->right)) + 1;  // Update height of x
+    y->height = max(height(y->left), height(y->right)) + 1;  // Update height of y
 
-	int hl = height(node->left), hr = height(node->right);
-	node->height = 1 + (hl > hr ? hl : hr);  // Update the node's height
-	return balance(node);           // Balance the tree and return the node
+    return y;  // Return the new root
 }
 
-// Helper method to find the node with the minimum value
-tNode* AVL::findMin(tNode* node) {
-	while (node->left) {            // Traverse to the leftmost node
-		node = node->left;
-	}
-	return node;                    // Return the node with the minimum value
+int AVL::getBalance(tNode* N) {  // Utility method to get the balance factor of a node
+    if (!N) return 0;  // If the node is null, return balance factor 0
+    return height(N->left) - height(N->right);  // Return the difference in height between left and right subtrees
 }
 
-// Method to perform a right rotation to balance the tree
-tNode* AVL::rotateRight(tNode* y) {
-	tNode* x = y->left;             // Set x as the left child of y
-	tNode* T2 = x->right;           // Store the right subtree of x
+tNode* AVL::insertRec(tNode* node, user* v) {  // Recursive method to insert and balance the tree
+    if (!node) return new tNode(v);  // If the node is null, create a new tree node with the user
 
-	x->right = y;                   // Perform the rotation (x becomes the new root)
-	y->left = T2;                   // Move T2 to the left of y
+    // Insert the user into the correct subtree
+    if (v->username < node->val->username)
+        node->left = insertRec(node->left, v);  // Insert in the left subtree
+    else if (v->username > node->val->username)
+        node->right = insertRec(node->right, v);  // Insert in the right subtree
+    else return node;  // If the username is the same, return the current node (no duplicates)
 
-	int hl = height(y->left), hr = height(y->right);
-	y->height = (hl > hr ? hl : hr) + 1;  // Update height of y
-	hl = height(x->left), hr = height(x->right);
-	x->height = (hl > hr ? hl : hr) + 1;  // Update height of x
+    // Update the height of this node
+    node->height = 1 + max(height(node->left), height(node->right));
 
-	return x;                       // Return the new root
+    // Get the balance factor of this node
+    int balance = getBalance(node);
+
+    // If the node is unbalanced, perform rotations
+    if (balance > 1 && v->username < node->left->val->username)  // Left Left case
+        return rotateRight(node);
+    if (balance < -1 && v->username > node->right->val->username)  // Right Right case
+        return rotateLeft(node);
+    if (balance > 1 && v->username > node->left->val->username) {  // Left Right case
+        node->left = rotateLeft(node->left);
+        return rotateRight(node);
+    }
+    if (balance < -1 && v->username < node->right->val->username) {  // Right Left case
+        node->right = rotateRight(node->right);
+        return rotateLeft(node);
+    }
+
+    return node;  // Return the (potentially) balanced node
 }
 
-// Method to perform a left rotation to balance the tree
-tNode* AVL::rotateLeft(tNode* x) {
-	tNode* y = x->right;            // Set y as the right child of x
-	tNode* T2 = y->left;            // Store the left subtree of y
+user* AVL::retrieveRec(tNode* node, string k) const {  // Recursive method to retrieve a user by username
+    if (!node) return nullptr;  // If the node is null, return null (user not found)
 
-	y->left = x;                    // Perform the rotation (y becomes the new root)
-	x->right = T2;                  // Move T2 to the right of x
+    // Traverse the tree to find the user
+    if (k < node->val->username)
+        return retrieveRec(node->left, k);  // Search in the left subtree
+    if (k > node->val->username)
+        return retrieveRec(node->right, k);  // Search in the right subtree
 
-	int hl = height(y->left), hr = height(y->right);
-	y->height = (hl > hr ? hl : hr) + 1;  // Update height of y
-	hl = height(x->left), hr = height(x->right);
-	x->height = (hl > hr ? hl : hr) + 1;  // Update height of x
-
-	return y;                       // Return the new root
+    return node->val;  // If the user is found, return the user
 }
 
-// Method to balance the AVL tree after insertion or deletion
-tNode* AVL::balance(tNode* node) {
-	int balanceFactor = getBalance(node);  // Get the balance factor of the current node
+tNode* AVL::removeRec(tNode* node, string k) {  // Recursive method to remove and balance the tree
+    if (!node) return node;  // If the node is null, return null
 
-	if (balanceFactor > 1) {          // Left-heavy case
-		if (getBalance(node->left) >= 0) {
-			return rotateRight(node);  // Left-left case
-		}
-		else {
-			node->left = rotateLeft(node->left); // Left-right case
-			return rotateRight(node);
-		}
-	}
+    // Traverse the tree to find the user to remove
+    if (k < node->val->username)
+        node->left = removeRec(node->left, k);  // Remove from the left subtree
+    else if (k > node->val->username)
+        node->right = removeRec(node->right, k);  // Remove from the right subtree
+    else {  // User to be removed is found
+        if (!node->left || !node->right) {  // Node with only one child or no child
+            tNode* temp = node->left ? node->left : node->right;  // Get the non-null child (if any)
+            if (!temp) {  // If no child, just delete the node
+                temp = node;
+                node = nullptr;
+            }
+            else *node = *temp;  // Copy the contents of the non-empty child
+            delete temp;  // Delete the node
+        }
+        else {  // Node with two children
+            tNode* temp = node->right;  // Find the smallest node in the right subtree
+            while (temp->left) temp = temp->left;  // Traverse to the leftmost leaf
 
-	if (balanceFactor < -1) {         // Right-heavy case
-		if (getBalance(node->right) <= 0) {
-			return rotateLeft(node);   // Right-right case
-		}
-		else {
-			node->right = rotateRight(node->right); // Right-left case
-			return rotateLeft(node);
-		}
-	}
+            node->val = temp->val;  // Copy the value of the smallest node
+            node->right = removeRec(node->right, temp->val->username);  // Remove the smallest node
+        }
+    }
 
-	return node;                      // If balanced, return the node
+    if (!node) return node;  // If the tree has only one node, return it
+
+    // Update the height of the current node
+    node->height = 1 + max(height(node->left), height(node->right));
+
+    // Get the balance factor of this node
+    int balance = getBalance(node);
+
+    // If the node is unbalanced, perform rotations
+    if (balance > 1 && getBalance(node->left) >= 0)  // Left Left case
+        return rotateRight(node);
+    if (balance > 1 && getBalance(node->left) < 0) {  // Left Right case
+        node->left = rotateLeft(node->left);
+        return rotateRight(node);
+    }
+    if (balance < -1 && getBalance(node->right) <= 0)  // Right Right case
+        return rotateLeft(node);
+    if (balance < -1 && getBalance(node->right) > 0) {  // Right Left case
+        node->right = rotateRight(node->right);
+        return rotateLeft(node);
+    }
+
+    return node;  // Return the (potentially) balanced node
 }
 
-// Method to get the height of a node (helper for balancing)
-int AVL::height(tNode* node) {
-	if (!node) return 0;            // If the node is null, return 0
-	return node->height;            // Otherwise, return the height of the node
-}
-
-// Method to get the balance factor of a node
-int AVL::getBalance(tNode* node) {
-	if (!node) return 0;            // If the node is null, return balance factor 0
-	return height(node->left) - height(node->right);  // Return the difference in heights
+void AVL::getArrRec(tNode* node, user** arr, int* i) const {  // Recursive method to fill an array with users in the tree
+    if (!node) return;  // If the node is null, return
+    getArrRec(node->left, arr, i);  // Traverse the left subtree
+    arr[(*i)++] = node->val;  // Add the user to the array
+    getArrRec(node->right, arr, i);  // Traverse the right subtree
 }
 
 #endif

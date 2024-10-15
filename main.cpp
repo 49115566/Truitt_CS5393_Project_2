@@ -84,44 +84,48 @@ When deleting a node, how insure no one is still following the non-user?
 using namespace std;
 
 int main() {
-    graph socialNetwork;
+    graph socialNetwork;  // Create an instance of the 'graph' class, which represents the social network
 
     cout << "NETWORK USER INFO:" << endl;
-    socialNetwork.print();
+    socialNetwork.print();  // Print all the users and their connections in the network
     cout << endl;
 
     cout << "NETWORK STATISTICS:" << endl;
-    socialNetwork.printNumberOfUsers();
-    socialNetwork.printAverageNumberOfConnections();
+    socialNetwork.printNumberOfUsers();  // Print the total number of users in the network
+    socialNetwork.printAverageNumberOfConnections();  // Print the average number of connections per user
     cout << endl;
 
     cout << "5 MOST CONNECTED USERS:" << endl;
-    socialNetwork.printMostConnectedUser(5);
+    socialNetwork.printMostConnectedUser(5);  // Print the top 5 most connected users based on followers and following
     cout << endl;
 
     cout << "5 MOST INFLUENTIAL USERS:" << endl;
-    socialNetwork.printMostInfluentialUser(5);
+    socialNetwork.printMostInfluentialUser(5);  // Print the top 5 most influential users based on followers' followers
     cout << endl;
 
-    cout << "FRIEND SUGGESTIONS:" << endl;
-    socialNetwork.printFriendSuggestions("emilyrodriguez859", 5);
+    cout << "FRIEND SUGGESTIONS: (Emily Rodriguez)" << endl;
+    socialNetwork.printFriendSuggestions("emilyrodriguez859", 5);  // Print 5 friend suggestions for the user "emilyrodriguez859"
     cout << endl;
 
-    random_device rd;
-    mt19937 gen(rd());
+    random_device rd;  // Seed for the random number generator
+    mt19937 gen(rd());  // Initialize the random number generator (Mersenne Twister)
 
-    uniform_int_distribution<> distr(0, socialNetwork.usrCt() - 1);
+    uniform_int_distribution<> distr(0, socialNetwork.usrCt() - 1);  // Define the distribution for selecting random user indices
 
     int randnum1, randnum2;
 
     cout << "DEGREE OF SEPARATION (5 sets of users)" << endl;
+    // Run the loop to print 5 random degrees of separation between pairs of users
     for(int i = 0; i < 5; i++){
-        randnum1 = distr(gen);
-        randnum2 = distr(gen);
-        if(randnum1 != randnum2) socialNetwork.printSeparationDegree(randnum1, randnum2);
-        else i--;
+        randnum1 = distr(gen);  // Generate a random number for the first user
+        randnum2 = distr(gen);  // Generate a random number for the second user
+
+        if(randnum1 != randnum2)  // Ensure the two random users are not the same
+            socialNetwork.printSeparationDegree(randnum1, randnum2);  // Print the degree of separation between the two users
+        else
+            i--;  // If the same user is selected, decrement the counter to repeat the iteration
     }
     cout << endl;
 
-    return 0;
+    return 0;  // Return 0 to indicate that the program executed successfully
 }
